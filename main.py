@@ -269,8 +269,7 @@ def about():
 @app.route("/contact", methods=['GET', 'POST'])
 def contact():
     if request.method == 'POST':
-        msg = (f"Name: {request.form["name"]}\nEmail: {request.form["email"]}\nPhone: {request.form["phone"]}\n"
-               f"Message: {request.form["message"]}")
+        msg = f"Name: {request.form["name"]}\nEmail: {request.form["email"]}\nPhone: {request.form["phone"]}\nMessage: {request.form["message"]}"
         with smtplib.SMTP("smtp.gmail.com", 587) as connection:
             full_msg = f"Subject: New Connection From Perfumes Blog\n\n{msg}"
             connection.starttls()
