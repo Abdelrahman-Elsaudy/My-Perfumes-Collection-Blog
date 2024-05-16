@@ -21,7 +21,7 @@
 <main class="mb-4">
   <div class="container">
     <div class="row">
-      <!-- TODO: add a flash message here for users registering twice -->
+      <!-- The flash message for users registering twice -->
       <div class="col-lg-8 col-md-10 mx-auto">
       {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -30,7 +30,7 @@
           {% endfor %}
         {% endif %}
       {% endwith %}
-        <!--TODO: render login form here-->
+        <!-- Login form -->
       {{ render_form(the_form) }}
       </div>
     </div>

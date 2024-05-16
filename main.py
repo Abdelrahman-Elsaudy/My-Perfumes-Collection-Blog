@@ -18,37 +18,21 @@ import smtplib
 import os
 
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv("APPCONFIGBLOG")
-ckeditor = CKEditor(app)
-Bootstrap5(app)
-
 today = datetime.datetime.today()
 current_year = today.year
 my_email = "abdelrahmanelsaudyyy@gmail.com"
 password = os.getenv("elsaudyyy_email_pass")
 
 
-# TODO: Configure Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
+# ------------------------------------- Configuration ------------------------------------- #
 
 
-@login_manager.user_loader
-def load_user(user_id):
-    return db.get_or_404(User, user_id)
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv("APPCONFIGBLOG")
+ckeditor = CKEditor(app)
+Bootstrap5(app)
 
-
-# CREATE DATABASE
-class Base(DeclarativeBase):
-    pass
-
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI")
-db = SQLAlchemy(model_class=Base)
-db.init_app(app)
-
-
+# Initializing Gravatar to load profile images
 gravatar = Gravatar(app,
                     size=100,
                     rating='g',
@@ -59,8 +43,29 @@ gravatar = Gravatar(app,
                     base_url=None)
 
 
-# CONFIGURE TABLES
-# TODO: Create a User table for all your registered users.
+# Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.get_or_404(User, user_id)
+
+
+# ------------------------------------- Database ------------------------------------- #
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI")
+db = SQLAlchemy(model_class=Base)
+db.init_app(app)
+
+
+# Creating User, Blog Posts and Comments tables.
 class User(db.Model):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -86,7 +91,7 @@ class BlogPost(db.Model):
     date: Mapped[str] = mapped_column(String(250), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     img_url: Mapped[str] = mapped_column(String(250), nullable=False)
-    # Relation to the user (parent) and using they key to indicate him, users is the name of the User class table.
+    # Relating to the user (parent), users is the name of the User class table.
     parent_author: Mapped["User"] = relationship(back_populates="posts")
     parent_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
@@ -94,7 +99,7 @@ class BlogPost(db.Model):
 
 
 class Comments(db.Model):
-    __tablename__ = "commens"
+    __tablename__ = "comments"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     date: Mapped[str] = mapped_column(String(250), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
@@ -111,6 +116,9 @@ with app.app_context():
     db.create_all()
 
 
+# ------------------------------------- Admin Only Function ------------------------------------- #
+
+
 def admin_only(function):
     @wraps(function)
     def wrapper_function(*args, **kwargs):
@@ -120,7 +128,10 @@ def admin_only(function):
     return wrapper_function
 
 
-# TODO: Use Werkzeug to hash the user's password when creating a new user.
+# ------------------------------------- Web Pages ------------------------------------- #
+
+
+# User registration.
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
@@ -128,25 +139,22 @@ def register():
         new_user = User(name=form.name.data,
                         email=form.email.data,
                         img_url=form.img_url.data,
+                        # Using Werkzeug to hash the password.
                         password=generate_password_hash(password=form.password.data,
                                                         method='pbkdf2:sha256',
                                                         salt_length=8))
-        # try:
-        #     all_users = db.session.execute(db.select(User).order_by(User.id)).scalars()
-        # except:
-        #     pass
-        # else:
-        #     for user in all_users:
-        #         if user.email == new_user.email:
-        #             flash("User already exists")
-        #             return redirect('login')
+        all_users = db.session.execute(db.select(User).order_by(User.id)).scalars()
+        for user in all_users:
+            if user.email == new_user.email:
+                flash("User already exists")
+                return redirect('login')
         db.session.add(new_user)
         db.session.commit()
         return redirect('login')
     return render_template("register.html", the_form=form, the_year=current_year)
 
 
-# TODO: Retrieve a user from the database based on their email. 
+# User Login.
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
@@ -165,6 +173,7 @@ def login():
     return render_template("login.html", the_form=form, the_year=current_year)
 
 
+# User Logout.
 @app.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
@@ -172,6 +181,7 @@ def logout():
     return redirect(url_for('get_all_posts'))
 
 
+# Homepage which displays all posts.
 @app.route('/')
 def get_all_posts():
     result = db.session.execute(db.select(BlogPost))
@@ -181,7 +191,7 @@ def get_all_posts():
                            the_year=current_year)
 
 
-# TODO: Allow logged-in users to comment on posts
+# Post page which shows individual posts.
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
     form = CommentForm()
@@ -209,7 +219,7 @@ def show_post(post_id):
                            comments=all_comments, the_year=current_year)
 
 
-# TODO: Use a decorator so only an admin user can create a new post
+# Creating a new post (Admin only)
 @app.route("/new-post", methods=["GET", "POST"])
 @admin_only
 def add_new_post():
@@ -230,7 +240,7 @@ def add_new_post():
                            logged_in=current_user.is_authenticated, the_year=current_year)
 
 
-# TODO: Use a decorator so only an admin user can edit a post
+# Editing an existing post (Admin only)
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
 @admin_only
 def edit_post(post_id):
@@ -254,7 +264,7 @@ def edit_post(post_id):
                            is_edit=True, logged_in=current_user.is_authenticated, the_year=current_year)
 
 
-# TODO: Use a decorator so only an admin user can delete a post
+# Deleting an existing post (Admin only)
 @app.route("/delete/<int:post_id>")
 @admin_only
 def delete_post(post_id):
@@ -264,12 +274,14 @@ def delete_post(post_id):
     return redirect(url_for('get_all_posts'))
 
 
+# The About Page.
 @app.route("/about")
 def about():
     return render_template("about.html", logged_in=current_user.is_authenticated,
                            the_year=current_year)
 
 
+# The Contact Me Page in which the user can send the admin an email.
 @app.route("/contact", methods=['GET', 'POST'])
 def contact():
     if request.method == 'POST':
