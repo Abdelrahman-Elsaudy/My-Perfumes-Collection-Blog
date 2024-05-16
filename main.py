@@ -131,11 +131,15 @@ def register():
                         password=generate_password_hash(password=form.password.data,
                                                         method='pbkdf2:sha256',
                                                         salt_length=8))
-        all_users = db.session.execute(db.select(User).order_by(User.id)).scalars()
-        for user in all_users:
-            if user.email == new_user.email:
-                flash("User already exists")
-                return redirect('login')
+        try:
+            all_users = db.session.execute(db.select(User).order_by(User.id)).scalars()
+        except:
+            pass
+        else:
+            for user in all_users:
+                if user.email == new_user.email:
+                    flash("User already exists")
+                    return redirect('login')
         db.session.add(new_user)
         db.session.commit()
         return redirect('login')
