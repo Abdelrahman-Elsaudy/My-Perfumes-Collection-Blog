@@ -214,9 +214,10 @@ def show_post(post_id):
             db.session.add(new_comment)
             db.session.commit()
     all_comments = Comments.query.all()
+    post_comments = [comment for comment in all_comments if comment.post_id == post_id]
     return render_template("post.html", post=requested_post, the_form=form,
                            logged_in=current_user.is_authenticated, user_id=current_user.get_id(),
-                           comments=all_comments, the_year=current_year)
+                           comments=post_comments, the_year=current_year)
 
 
 # Creating a new post (Admin only)
