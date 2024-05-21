@@ -3,6 +3,7 @@
 .idea
 instance
 .DS_Store
+README_files
 
 
 # ---------------------- Python Common gitignore ---------------------- #

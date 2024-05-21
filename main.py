@@ -71,11 +71,11 @@ class User(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     email: Mapped[str] = mapped_column(String(50), nullable=False)
-    password: Mapped[str] = mapped_column(String(50), nullable=False)
+    password: Mapped[str] = mapped_column(String(200), nullable=False)
     img_url: Mapped[str] = mapped_column(String)
     is_active = True
     is_authenticated = True
-    # Relation with BlogPost to make a list of posts (the children) related to the user (the parent).
+    # Relation with BlogPost to make a list of posts and comments (the children) related to the user (the parent).
     posts: Mapped[list["BlogPost"]] = relationship(back_populates="parent_author")
     comments: Mapped[list["Comments"]] = relationship(back_populates="parent_author")
 
